@@ -20,10 +20,9 @@ CONTACT = 8
 
 
 def pull_brand(data):
-  # do slow things <--
-  # do NOT write to csv here.
+
   brand = data[BRAND]
-  url = data[url]
+  url = data[URL]
 
   founder = data[FOUNDER]
   ceo = get_ceo(brand)
@@ -31,13 +30,12 @@ def pull_brand(data):
     data[FOUNDER] = ceo
 
   shopify = data[SHOPIFY]
-  is_shopify = is_shopify(url)
+  result_is_shopify = is_shopify(url)
   if shopify == '':
-    data[SHOPIFY] = is_shopify
+    data[SHOPIFY] = result_is_shopify
 
   return data # return the line needed to write to the csv
 
-# incomplete
 def process_data(database):
   POOL_NUM = 8
   with Pool(POOL_NUM) as p:
@@ -65,7 +63,7 @@ def read_data(file_path):
 # only write the database to csv don't change the database at all
 def write_data_to_csv(database):
   file_name_result = "result_after_scraping.csv"
-  fo = open(file_name_result, "w+") # r stands for write over
+  fo = open(file_name_result, "w+") # w stands for write over
   if fo == None:
     print("Could not create csv file: ", file_name_result)
     return None
@@ -114,15 +112,20 @@ def get_ceo(brand):
   return str(value)
 
 def is_shopify(url): 
-  url = 'https://www.google.com/search?q={0} ceo'.format(brand)
+  if url == '':
+    return "Unknown"
+  url = 'https://www.{0}'.format(url)
   headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'}
   failed = False
 
   # Retries 5 times for handling network errors
   for _ in range(2):
     print ("Retrieving %s"%(url)) 
-    response = requests.get(url, headers=headers, verify=True)
-    parser = html.fromstring(response.text)
+    try: 
+      response = requests.get(url, headers=headers, verify=True, timeout=2)
+    except: # max retries or timeout exception because website is slow
+      return "Unknown"
+    #parser = html.fromstring(response.text)
     print("Done retrieving - status code: ", response.status_code)
 
     if response.status_code!=200:
@@ -133,14 +136,17 @@ def is_shopify(url):
         break
 
   if failed:
-    print("The google.com network is unresponsive or url error. Please try again later (or now).")
-    return "Brand Failed"
+    print("The brand url network is unresponsive or url error. Please try again later (or now).")
+    return "Unknown"
 
-  raw_value = parser.xpath('//div[contains(@class, "Z0LcW XcVN5d")]//text()')
-  if len(raw_value) < 1:
-    return "Brand Failed"
-  value = raw_value[0].strip()
-  return str(value)
+  if (response.text.lower()).find("shopify") != -1:
+    print(" -----------> SHOPIFY\n")
+    print(url)
+    return "Shopify"
+  else:
+    print(" -----------> Unknown\n")
+    print(url)
+    return "Unknown"
 
 def line_from_csv(f):
   ln = f.readline()
