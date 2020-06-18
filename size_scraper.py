@@ -34,18 +34,30 @@ def pull_brand(data):
 
   if size == '': # don't overwrite a size that is already present in the csv
     if annual_sales != 'URL Failed':
-      annual_sales = float(annual_sales)
-      if annual_sales <= 10000000: # small <= 10m
+      try:
+        annual_sales = float(annual_sales)
+      except ValueError:
+        annual_sales = 0
+      if annual_sales == 0:
+        print("BROKEN")
+        data[SIZE] = '?Small'
+      elif annual_sales <= 10000000: # small <= 10m
         data[SIZE] = 'Small'
-      if annual_sales >= 100000000: # large >= 100m
+      elif annual_sales >= 100000000: # large >= 100m
         data[SIZE] = 'Large'
       else: # medium is between small and large
         data[SIZE] = 'Medium'
     elif num_employees != 'Brand Failed':
-      num_employees = float(num_employees)
-      if num_employees <= 10: # small <= 10
+      try:
+        num_employees = float(num_employees)
+      except ValueError:
+        num_employees = 0    
+      if num_employees == 0:
+        print("BROKEN")
+        data[SIZE] = '?Small'
+      elif num_employees <= 10: # small <= 10
         data[SIZE] = 'Small'
-      if num_employees >= 100: # large >= 100
+      elif num_employees >= 100: # large >= 100
         data[SIZE] = 'Large'
       else: # medium is between small and large
         data[SIZE] = 'Medium'
