@@ -3,7 +3,8 @@ import requests
 from lxml import html
 import time
 from price_parser import Price
-from multiprocessing import Pool
+import multiprocessing
+#from multiprocessing import Pool
 
 # automatically reads in the next unread line so no need for a line number parameter
 def line_from_csv(f):
@@ -26,8 +27,7 @@ def line_from_csv(f):
       break
   return parsed_line
 
-# parses url from csv and parsed_line
-def process_file(file_path, start, end):
+def process_file(file_path):
     file_name = file_path
     fi = open(file_name, "r") # r stands for read
     if fi == None:
@@ -80,7 +80,6 @@ def process_file(file_path, start, end):
         else:
           parsed_line[6] = '?Small' # set to ?Small if unable to parse info on the brand
 
-
       if parsed_line:
         line = ""
         for l in parsed_line:
@@ -88,12 +87,39 @@ def process_file(file_path, start, end):
         line = line[0:len(line)-1]
         fo.write(line)
         fo.write("\r\n")
-
       else:
         print("No data scraped")
     fi.close()
     fo.close()
 
+def save_scraped_data(lines):
+  if lines:
+      file_name = "result_after_scraping.csv"
+      f = open(file_name,"w+")
+      f.write("Brand name", "Brand URL", "Shopify or other","Annual sales", "Alexa rating", "# of employees,Segment (s/m/l/d)", "Name/Founder 1,Contact email""\r\n")
+      for line in lines:
+          f.write(line + "\r\n")
+      f.close() 
+  else:
+      print("No data scraped")
+  return
+
+# main code entry point
+if __name__=="__main__":
+  multiprocessing.freeze_support()
+  argparser = argparse.ArgumentParser()
+  argparser.add_argument('path',help = 'Path to CSV')
+  argparser.add_argument('start',help = 'Starting line in CSV') # includes starting line
+  argparser.add_argument('end',help = 'Ending line in CSV') # includes ending line
+  args = argparser.parse_args()
+  file_path = args.path
+  start = args.start
+  end = args.end
+  print(">> ", file_path)
+  process_file(file_path)
+  # done
+
+# helper methods below - annual sales, alexa rating, number of employees
 def get_annual_sales(url): 
   url = 'https://ecommercedb.com/en/store/{0}'.format(url)
   headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'}
@@ -190,29 +216,3 @@ def get_num_employees(brand):
   value = raw_value[0].strip()
   num_employees = ''.join([c for c in value if c in '1234567890'])
   return str(num_employees)
-
-def save_scraped_data(lines):
-  if lines:
-      file_name = "result_after_scraping.csv"
-      f = open(file_name,"w+")
-      f.write("Brand name", "Brand URL", "Shopify or other","Annual sales", "Alexa rating", "# of employees,Segment (s/m/l/d)", "Name/Founder 1,Contact email""\r\n")
-      for line in lines:
-          f.write(line + "\r\n")
-      f.close() 
-  else:
-      print("No data scraped")
-  return
-
-# main code entry point
-if __name__=="__main__":
-  argparser = argparse.ArgumentParser()
-  argparser.add_argument('path',help = 'Path to CSV')
-  argparser.add_argument('start',help = 'Starting line in CSV') # includes starting line
-  argparser.add_argument('end',help = 'Ending line in CSV') # includes ending line
-  args = argparser.parse_args()
-  file_path = args.path
-  start = args.start
-  end = args.end
-  print(">> ", file_path)
-  process_file(file_path, start, end)
-  # done

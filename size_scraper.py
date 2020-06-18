@@ -4,6 +4,7 @@ from lxml import html
 import time
 from price_parser import Price
 from multiprocessing import Pool
+import multiprocessing
 
 header = ''
 # indexes of each category
@@ -53,19 +54,25 @@ def pull_brand(data):
 
   return data # return the line needed to write to the csv
 
+
+
 # incomplete
-def pull_raw_data(brands, urls, sizes):
+
+def pull_raw_data(brands, urls, shopifys, sales, alexas, employees, sizes, founders, contacts):
   arguments = [(brands[i], urls[i], sizes[i]) for i in range(len(brands))]
   with Pool(8) as p:
       all_pulled_data = p.map(pull_brand, arguments)
-
   print(f'all pulled data: {all_pulled_data}')
   return all_pulled_data
 
+
 # incomplete
 def process_data(database):
-  for 
-  database = pull_raw_data(1, 2, 3)
+  POOL_NUM = 8
+  with Pool(POOL_NUM) as p:
+    all_processed_data = p.map( pull_brand, database )
+    print(">>>> DONE with thread processing")
+  return all_processed_data
 
 def read_data(file_path):
   global header
@@ -94,7 +101,7 @@ def write_data_to_csv(database):
 
   # header
   fo.write(header)
-  
+
   for data in database:
     str_data = ''
     for item in data:
@@ -105,15 +112,6 @@ def write_data_to_csv(database):
   fo.close()
 
 # helper methods
-
-def get_brands(file_path):
-  pass
-
-def get_urls(file_path):
-  pass
-
-def get_sizes(file_path):
-  pass
 
 def get_annual_sales(url): 
   url = 'https://ecommercedb.com/en/store/{0}'.format(url)
@@ -212,33 +210,46 @@ def get_num_employees(brand):
   num_employees = ''.join([c for c in value if c in '1234567890'])
   return str(num_employees)
 
+
 def line_from_csv(f):
   ln = f.readline()
+  while True:
+    length = len(ln)-1
+    if length < 0:
+      break
+    if ln[length] == '\r' or ln[length] == '\n':
+      ln = ln[:length]
+    else:
+      break
+  # skip blank lines
   if ln == "":
     return None
-  print( "line: ", ln, end = "" )
   i = 0
   li = 0
   parsed_line = []
+  
   while True:
     start = i
     while( i < len(ln) and ln[i] != ',' ):
       i = i + 1
-    if i < len(ln):
-      parsed_line.insert( li, ln[start:i] )
+    parsed_line.insert( li, ln[start:i] )
     li = li + 1
     i = i + 1
-    if i >= len(ln):
+    if i >= len(ln): 
       break
+  # account for missing commas or last data
+  while li < 9:
+    parsed_line.insert( li, "" )
+    li = li + 1
   return parsed_line
 
 # main code entry point
 if __name__=="__main__":
+  multiprocessing.freeze_support()
   argparser = argparse.ArgumentParser()
   argparser.add_argument('path',help = 'Path to CSV')
   args = argparser.parse_args()
   file_path = args.path
   database = read_data(file_path)
-  #raw_data = pull_raw_data(brands, urls, sizes)
-  process_data(database)
+  database = process_data(database)
   write_data_to_csv(database)
