@@ -21,9 +21,15 @@ CONTACT = 8
 def pull_brand(data):
   brand = data[BRAND]
   founder = data[FOUNDER]
-  ceo = get_ceo(brand)
+
+  result_ceo = get_ceo(brand)
+  result_founder = get_founder(brand)
+
   if founder == '':
-    data[FOUNDER] = ceo
+    if result_ceo != 'Brand Failed':
+      data[FOUNDER] = result_ceo
+    else:
+      data[FOUNDER] = result_founder
   return data # return the line needed to write to the csv
 
 def process_data(database):
@@ -74,6 +80,38 @@ def write_data_to_csv(database):
 
 def get_ceo(brand): 
   url = 'https://www.google.com/search?q={0} ceo'.format(brand)
+  headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'}
+  failed = False
+
+  # Retries 5 times for handling network errors
+  for _ in range(2):
+    print ("Retrieving %s"%(url)) 
+    try: 
+      response = requests.get(url, headers=headers, verify=True, timeout=2)
+    except: # max retries or timeout exception because website is slow
+      return "Brand failed"
+    parser = html.fromstring(response.text)
+    print("Done retrieving - status code: ", response.status_code)
+
+    if response.status_code!=200:
+        failed = True
+        continue
+    else:
+        failed = False
+        break
+
+  if failed:
+    print("The google.com network is unresponsive or url error. Please try again later (or now).")
+    return "Brand Failed"
+
+  raw_value = parser.xpath('//div[contains(@class, "Z0LcW XcVN5d")]//text()')
+  if len(raw_value) < 1:
+    return "Brand Failed"
+  value = raw_value[0].strip()
+  return str(value)
+
+def get_founder(brand): 
+  url = 'https://www.google.com/search?q={0} founder'.format(brand)
   headers = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/73.0.3683.103 Safari/537.36'}
   failed = False
 
