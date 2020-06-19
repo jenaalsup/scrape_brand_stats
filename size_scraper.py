@@ -118,7 +118,10 @@ def get_annual_sales(url):
   # Retries 5 times for handling network errors
   for _ in range(2):
     print ("Retrieving %s"%(url)) 
-    response = requests.get(url, headers=headers, verify=True)
+    try: 
+      response = requests.get(url, headers=headers, verify=True, timeout=2)
+    except: # max retries or timeout exception because website is slow
+      return "Unknown"
     parser = html.fromstring(response.text)
     print("Done retrieving - status code: ", response.status_code)
 
@@ -153,7 +156,10 @@ def get_num_employees(brand):
   # Retries 5 times for handling network errors
   for _ in range(2):
     print ("Retrieving %s"%(url)) 
-    response = requests.get(url, headers=headers, verify=True)
+    try: 
+      response = requests.get(url, headers=headers, verify=True, timeout=2)
+    except: # max retries or timeout exception because website is slow
+      return "Unknown"
     parser = html.fromstring(response.text)
     print("Done retrieving - status code: ", response.status_code)
 
