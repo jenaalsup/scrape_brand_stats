@@ -8,7 +8,7 @@ import multiprocessing
 
 header = ''
 # indexes of each category
-BRAND = 0
+BRAND = 0 
 URL = 1
 SHOPIFY = 2
 SALES = 3
